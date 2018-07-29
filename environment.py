@@ -7,7 +7,7 @@ class Game:
         self.state_dim = self.env.observation_space.shape[0]
         self.n_actions = self.env.action_space.shape[0]
         # typecast since problems with multiplication if type(limit) = np.float32
-        self.limit = float(self.env.action_space.high[0])
+        self.limit = self.env.action_space.high
 
     def reset(self):
         start = self.env.reset()
