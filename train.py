@@ -5,7 +5,6 @@ import os
 
 from environment import Game
 from replay_mem import ReplayMemory
-from utilities import Orn_Uhlen
 from ddpg import DDPG
 from constants import *
 
