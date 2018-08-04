@@ -7,7 +7,16 @@ import os
 
 from constants import *
 from model import Actor, Critic
-from utilities import Orn_Uhlen
+
+class Orn_Uhlen:
+    def __init__(self, n_actions):
+        self.n_actions = n_actions
+
+    def sample(self, mu=0, theta=0.15, sigma=0.2):
+        X = mu * np.ones(self.n_actions)
+        dX = theta * (mu - X)
+        dX += sigma * np.random.randn(self.n_actions)
+        return X + dX
 
 class DDPG:
     def __init__(self, env, memory):
@@ -36,6 +45,7 @@ class DDPG:
         self.critic_optimizer = optim.Adam(self.critic_net.parameters(), lr=C_LEARNING_RATE)
 
         self.memory = memory
+        self.noise = Orn_Uhlen(n_out)
 
     def train_one_episode(self, batch_size=32):
         S = self.env.reset()
@@ -45,7 +55,7 @@ class DDPG:
         while not is_done and n_steps < THRESHOLD_STEPS:
             S_var = Variable(torch.FloatTensor(S))
             A_pred = self.actor_net(S_var).detach()
-            noise = Orn_Uhlen(self.env.n_actions)
+            noise = self.noise.sample()
             A = A_pred.data.numpy() + torch.FloatTensor(noise)
 
             S_prime, R, is_done = self.env.take_action(A)
