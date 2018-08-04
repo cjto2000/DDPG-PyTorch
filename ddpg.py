@@ -7,6 +7,7 @@ import os
 
 from constants import *
 from model import Actor, Critic
+from utilities import Orn_Uhlen
 
 class DDPG:
     def __init__(self, env, memory):
@@ -36,7 +37,7 @@ class DDPG:
 
         self.memory = memory
 
-    def train_one_episode(self, batch_size=64, noise=None):
+    def train_one_episode(self, batch_size=32):
         S = self.env.reset()
         is_done = False
         R_total = 0
@@ -44,6 +45,7 @@ class DDPG:
         while not is_done and n_steps < THRESHOLD_STEPS:
             S_var = Variable(torch.FloatTensor(S))
             A_pred = self.actor_net(S_var).detach()
+            noise = Orn_Uhlen(self.env.n_actions)
             A = A_pred.data.numpy() + torch.FloatTensor(noise)
 
             S_prime, R, is_done = self.env.take_action(A)
@@ -66,11 +68,11 @@ class DDPG:
 
             A_critic = self.target_actor_net(S_prime_batch)
             Q_Spr_A = self.target_critic_net(S_prime_batch, A_critic)
-            target_y = R_batch + GAMMA * Q_Spr_A * is_done_batch
+            target_y = R_batch + GAMMA * Q_Spr_A * (1 - is_done_batch)
             y = self.critic_net(S_batch, A_batch)
 
             # prediction loss for critic
-            critic_loss = torch.sum(torch.pow(y - target_y, 2))
+            critic_loss = torch.mean(torch.pow(y - target_y, 2))
 
             # update critic network -> Q(S, A)
             self.critic_optimizer.zero_grad()
@@ -79,7 +81,7 @@ class DDPG:
 
             # find actor loss
             A_actor = self.actor_net(S_batch)
-            actor_loss = -1 * torch.sum(self.critic_net(S_batch, A_actor))
+            actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_actor))
 
             # update actor network
             self.actor_optimizer.zero_grad()
@@ -94,14 +96,8 @@ class DDPG:
         return critic_loss, actor_loss, R_total
 
     def soft_update(self):
-        target_p = self.target_actor_net.state_dict()
-        src_p = self.actor_net.state_dict()
-        for key in src_p.keys():
-            target_p[key] = target_p[key] * (1 - TAU) + src_p[key] * TAU
-        self.target_actor_net.load_state_dict(target_p)
+        for target, src in zip(self.target_actor_net.parameters(), self.actor_net.parameters()):
+            target.data.copy_(target * (1.0 - TAU) + src * TAU)
 
-        target_p = self.target_critic_net.state_dict()
-        src_p = self.critic_net.state_dict()
-        for key in src_p.keys():
-            target_p[key] = target_p[key] * (1 - TAU) + src_p[key] * TAU
-        self.target_critic_net.load_state_dict(target_p)
+        for target, src in zip(self.target_critic_net.parameters(), self.critic_net.parameters()):
+            target.data.copy_(target * (1.0 - TAU) + src * TAU)
