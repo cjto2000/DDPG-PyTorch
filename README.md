@@ -5,3 +5,7 @@ Paper Link:  [Continuous control with deep reinforcement learning](https://arxiv
 ### Results:
 
 Yet to run on server
+
+References:
+* <https://github.com/ikostrikov/pytorch-ddpg-naf>
+* <https://github.com/vy007vikas/PyTorch-ActorCriticRL>
