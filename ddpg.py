@@ -10,7 +10,8 @@ import numpy as np
 from constants import *
 from model import Actor, Critic
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+print(f"DEVICE: {device}")
 
 class Orn_Uhlen:
     def __init__(self, n_actions, mu=0, theta=0.15, sigma=0.2):
@@ -30,7 +31,7 @@ class Orn_Uhlen:
         return self.X
 
 class DDPG:
-    def __init__(self, env, memory):
+    def __init__(self, env, memory, load_model=False):
         self.env = env
 
         n_inp = env.state_dim
@@ -43,10 +44,10 @@ class DDPG:
         self.target_actor_net = Actor(n_inp, n_out, a_limit).to(device)
         self.target_critic_net = Critic(n_inp, n_out).to(device)
 
-        if os.path.exists(actor_model_path):
+        if load_model and os.path.exists(actor_model_path):
             self.actor_net.load_state_dict(torch.load(actor_model_path))
 
-        if os.path.exists(critic_model_path):
+        if load_model and os.path.exists(critic_model_path):
             self.critic_net.load_state_dict(torch.load(critic_model_path))
 
         self.target_actor_net.load_state_dict(self.actor_net.state_dict())

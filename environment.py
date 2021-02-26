@@ -3,7 +3,7 @@ import numpy as np
 
 class Game:
     def __init__(self):
-        self.env = gym.make('BipedalWalker-v2')
+        self.env = gym.make('BipedalWalker-v3')
         self.state_dim = self.env.observation_space.shape[0]
         self.n_actions = self.env.action_space.shape[0]
         # typecast since problems with multiplication if type(limit) = np.float32
