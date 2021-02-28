@@ -19,3 +19,6 @@ class Game:
 
     def sample_action(self):
         return self.env.action_space.sample()
+    
+    def render(self):
+        self.env.render()

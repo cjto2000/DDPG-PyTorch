@@ -44,14 +44,20 @@ class DDPG:
         self.target_actor_net = Actor(n_inp, n_out, a_limit).to(device)
         self.target_critic_net = Critic(n_inp, n_out).to(device)
 
-        if load_model and os.path.exists(actor_model_path):
+        paths_exist = os.path.exists(actor_save_path) and os.path.exists(critic_save_path)
+        if load_model and paths_exist:
+            print("Loading models")
             self.actor_net.load_state_dict(torch.load(actor_model_path))
-
-        if load_model and os.path.exists(critic_model_path):
             self.critic_net.load_state_dict(torch.load(critic_model_path))
 
         self.target_actor_net.load_state_dict(self.actor_net.state_dict())
         self.target_critic_net.load_state_dict(self.critic_net.state_dict())
+
+        target_paths_exist = os.path.exists(target_actor_save_path) and os.path.exists(target_critic_save_path)
+        if load_model and target_paths_exist:
+            print("Loading target models")
+            self.target_actor_net.load_state_dict(torch.load(target_actor_save_path))
+            self.target_critic_net.load_state_dict(torch.load(target_critic_save_path))
 
         self.actor_optimizer = optim.Adam(self.actor_net.parameters(), lr=A_LEARNING_RATE)
         self.critic_optimizer = optim.Adam(self.critic_net.parameters(), lr=C_LEARNING_RATE)
@@ -65,6 +71,7 @@ class DDPG:
         R_total = 0
         n_steps = 0
         while not is_done and n_steps < THRESHOLD_STEPS:
+            self.env.render()
             S_var = Variable(torch.FloatTensor(S)).unsqueeze(0).to(device)
             A_pred = self.actor_net(S_var).detach()
             noise = self.noise.sample()
@@ -116,7 +123,7 @@ class DDPG:
             n_steps += 1
 
         self.noise.reset()
-        return critic_loss, actor_loss, R_total
+        return critic_loss, actor_loss, R_total, n_steps
 
     def soft_update(self):
         for target, src in zip(self.target_actor_net.parameters(), self.actor_net.parameters()):
