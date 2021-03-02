@@ -6,7 +6,7 @@ import os
 
 from environment import Game
 from replay_mem import ReplayMemory
-from ddpg import *
+from ddpg import DDPG
 from constants import *
 
 start_over = True
@@ -63,32 +63,34 @@ history = {
 
 
 if __name__ == "__main__":
-    running_R = -100
+    running_R = -200
     best_R = -float("inf")
     time_steps = 0
-    for i in range(N_EPISODES):
+    reward = 0
+    for i in range(1, N_EPISODES):
         l1, l2, R, n_steps = agent.train_one_episode(BATCH_SIZE)
         time_steps += n_steps
         running_R = 0.9 * running_R + 0.1 * R
+        reward += R
         # TODO: maintain running rewards and losses
         if i % LOG_STEPS == 0:
             history["timesteps"].append(time_steps)
             history["running_rewards"].append(round(running_R, 2))
             history["critic_loss"].append(round(l1.item(), 2))
             history["actor_loss"].append(round(l2.item(), 2))
-            history["rewards"].append(round(R, 2))
+            history["rewards"].append(round(reward / LOG_STEPS, 2))
             history["total_timesteps"] += time_steps
             time_steps = 0
             write_history("history.json", history)
-            print("Episode %5d -- Running Rewards : %.5f -- Reward: %.5f -- Losses: %.5f(a)  %.5f(c) -- Best Reward: %.5f -- Time steps: %d" %(i, running_R, R, l2, l1, best_R, history["total_timesteps"]))
+            print("Episode %5d -- Running Rewards : %.5f -- Reward: %.5f -- Losses: %.5f(a)  %.5f(c) -- Best Reward: %.5f -- Time steps: %d" %(i, running_R, reward / LOG_STEPS, l2, l1, best_R, history["total_timesteps"]))
+            reward = 0
         if R > best_R:
             best_R = R
             history["best_reward"] = round(best_R, 2)
             torch.save(agent.actor_net.state_dict(), actor_model_path)
             torch.save(agent.critic_net.state_dict(), critic_model_path)
         if R > 250:
-            agent.noise = Orn_Uhlen(env.n_actions, mu=0, theta=0, sigma=0)
-            print("NOISE IS ZERO")
+            print("ABOVE 250")
         if i % SAVE_STEPS == 0:
             pickle.dump(memory, open("mem.pkl", "wb"))
             torch.save(agent.actor_net.state_dict(), actor_save_path)

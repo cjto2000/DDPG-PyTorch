@@ -71,7 +71,6 @@ class DDPG:
         R_total = 0
         n_steps = 0
         while not is_done and n_steps < THRESHOLD_STEPS:
-            self.env.render()
             S_var = Variable(torch.FloatTensor(S)).unsqueeze(0).to(device)
             A_pred = self.actor_net(S_var).detach()
             noise = self.noise.sample()
