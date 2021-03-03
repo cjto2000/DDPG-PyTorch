@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+from torch.optim import lr_scheduler
 
 import os
 import numpy as np
@@ -61,6 +62,8 @@ class DDPG:
 
         self.actor_optimizer = optim.Adam(self.actor_net.parameters(), lr=A_LEARNING_RATE)
         self.critic_optimizer = optim.Adam(self.critic_net.parameters(), lr=C_LEARNING_RATE)
+        self.actor_scheduler = lr_scheduler.StepLR(self.actor_optimizer, step_size=500000, gamma=0.33)
+        self.critic_scheduler = lr_scheduler.StepLR(self.critic_optimizer, step_size=500000, gamma=0.33)
 
         self.memory = memory
         self.noise = Orn_Uhlen(n_out)
@@ -118,6 +121,10 @@ class DDPG:
 
             # soft_update target networks
             self.soft_update()
+            
+            # update schedulers
+            self.actor_scheduler.step()
+            self.critic_scheduler.step()
 
             n_steps += 1
 
