@@ -110,7 +110,7 @@ class SuperLesionedActor(nn.Module):
         self.fc3 = nn.Linear(300, action_dim)
         nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
 
-        self.cpn = CPN(state_dim)
+        self.cpn = CPN(state_dim, input_dim=400)
 
     def forward(self, x):
         x_cpn = F.relu(self.cpn(x))
