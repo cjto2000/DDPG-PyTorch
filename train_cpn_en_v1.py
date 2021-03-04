@@ -53,6 +53,7 @@ else:
 history = {
     "timesteps": [],
     "running_rewards" : [],
+    "critic_loss": [],
     "actor_loss": [],
     "rewards": [],
     "best_reward": 0,
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     time_steps = 0
     reward = 0
     for i in range(1, N_EPISODES):
-        l2, R, n_steps = agent.train_one_episode(BATCH_SIZE)
+        l1, l2, R, n_steps = agent.train_one_episode(BATCH_SIZE)
         time_steps += n_steps
         running_R = 0.9 * running_R + 0.1 * R
         reward += R
@@ -79,7 +80,7 @@ if __name__ == "__main__":
             history["total_timesteps"] += time_steps
             time_steps = 0
             write_history("history.json", history)
-            print("Episode %5d -- Running Rewards : %.5f -- Reward: %.5f -- Losses: %.5f(a) -- Best Reward: %.5f -- Time steps: %d" %(i, running_R, reward / LOG_STEPS, l2, best_R, history["total_timesteps"]))
+            print("Episode %5d -- Running Rewards : %.5f -- Reward: %.5f -- Losses: %.5f(a) %.5f(c) -- Best Reward: %.5f -- Time steps: %d" %(i, running_R, reward / LOG_STEPS, l2, l1, best_R, history["total_timesteps"]))
             reward = 0
         if R > best_R:
             best_R = R
