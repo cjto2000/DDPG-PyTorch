@@ -1,0 +1,1 @@
+Trained on gerlach. I believe I used a scheduler that reduced learning rate to .001 when agent hit 250 reward.

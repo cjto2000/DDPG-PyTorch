@@ -1,0 +1,1 @@
+en_model_good.pth is trained on good_models/actor.pth
