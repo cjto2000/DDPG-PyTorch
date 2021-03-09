@@ -10,7 +10,7 @@ from ddpg_lesioned_en_v1 import *
 from constants import *
 
 start_over = True
-hidden_dim = 16
+hidden_dim = 400
 
 # gam environment
 env = Game()
