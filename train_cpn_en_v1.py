@@ -10,6 +10,7 @@ from ddpg_lesioned_en_v1 import *
 from constants import *
 
 start_over = True
+hidden_dim = 16
 
 # gam environment
 env = Game()
@@ -19,7 +20,7 @@ memory = ReplayMemory(MAX_BUFF_SIZE, env.state_dim, env.n_actions)
 
 
 # DDPG agent
-agent = DDPG(env, memory)
+agent = DDPG(env, memory, hidden_dim)
 
 def initialize_replay_mem():
     '''

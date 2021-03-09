@@ -26,7 +26,7 @@ class ActorLastLayer(nn.Module):
         x = F.tanh(self.fc1(x))
         return x
 
-    def load_weights(self, path="damaged_models/actor.pth"):
+    def load_weights(self, path):
         state_dict = torch.load(path)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc3.weight"])
@@ -47,8 +47,9 @@ class EN(nn.Module):
 
 class Actor(nn.Module):
     # Actor provides the next action to take
-    def __init__(self, state_dim, action_dim, limit):
+    def __init__(self, state_dim, action_dim, limit, en=False):
         super(Actor, self).__init__()
+        self.en = en
         self.limit = torch.FloatTensor(limit)
 
         self.fc1 = nn.Linear(state_dim, 400)
@@ -63,7 +64,10 @@ class Actor(nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
+        en_input = x
         x = F.tanh(self.fc3(x))
+        if self.en:
+            return x, en_input
         return x
 
 class DamagedActor(nn.Module):
@@ -114,14 +118,14 @@ class ActorEN(nn.Module):
 
 class SuperLesionedActor(nn.Module):
     # Actor provides the next action to take
-    def __init__(self, state_dim, action_dim, limit):
+    def __init__(self, state_dim, action_dim, hidden_dim, limit):
         super(SuperLesionedActor, self).__init__()
         self.limit = torch.FloatTensor(limit)
 
-        self.fc1 = nn.Linear(state_dim, 16)
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
 
-        self.fc2 = nn.Linear(16, 300)
+        self.fc2 = nn.Linear(hidden_dim, 300)
         nn.init.xavier_uniform_(self.fc2.weight)
 
         self.fc3 = nn.Linear(300, action_dim)
@@ -135,7 +139,7 @@ class SuperLesionedActor(nn.Module):
         x = F.tanh(self.fc3(x_cpn))
         return x, actor_input
 
-    def load_weights(self, path="./damaged_models/actor.pth"):
+    def load_weights(self, path):
         state_dict = torch.load(path)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc1.weight"])
@@ -145,11 +149,19 @@ class SuperLesionedActor(nn.Module):
             self.fc3.weight.copy_(state_dict["fc3.weight"])
             self.fc3.bias.copy_(state_dict["fc3.bias"])
 
-    def load_en_weights(self, path="en_model/en_model.pth"):
+    def load_en_weights(self, path):
         state_dict = torch.load(path)
         with torch.no_grad():
             self.fc3.weight.copy_(state_dict["fc1.weight"])
             self.fc3.bias.copy_(state_dict["fc1.bias"])
+
+    def zero_weights(self, percent=.50):
+        # zero first layer
+        with torch.no_grad():
+            shape = self.fc1.weight.shape
+            print(shape[0], shape[1])
+            num = int(shape[0] * percent)
+            self.fc1.weight[0:num, :] = 0
 
     def freeze_parameters(self):
         for param in self.fc1.parameters():
