@@ -123,8 +123,17 @@ class DDPG:
             actor_loss.backward()
             self.actor_optimizer.step()
 
+            # soft update target networks
+            self.soft_update()
 
             n_steps += 1
 
         self.noise.reset()
         return critic_loss, actor_loss, R_total, n_steps
+
+    def soft_update(self):
+      for target, src in zip(self.target_actor_net.parameters(), self.actor_net.parameters()):
+          target.data.copy_(target.data * (1.0 - TAU) + src.data * TAU)
+
+      for target, src in zip(self.target_critic_net.parameters(), self.critic_net.parameters()):
+          target.data.copy_(target.data * (1.0 - TAU) + src.data * TAU)
