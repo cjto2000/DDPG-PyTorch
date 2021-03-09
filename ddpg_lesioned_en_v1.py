@@ -45,14 +45,15 @@ class DDPG:
         # self.en_net.freeze_parameters()
 
         self.actor_net = SuperLesionedActor(n_inp, n_out, hidden_dim, a_limit).to(device)
+        self.actor_net.load_weights(path="models/good_models/actor.pth") # load weights
+        self.actor_net.load_en_weights(path="models/en_models/en_model_good.pth") # replace last layer with en network weights
+        self.actor_net.zero_weights() # zero weights of actor to damage it
         self.actor_net.freeze_parameters() # freeze all parameters except for the CPN
-        self.actor_net.load_weights(path="models/damaged_models/actor.pth") # load weights
-        self.actor_net.load_en_weights(path="models/en_models/en_model.pth") # replace last layer with en network weights
         self.critic_net = Critic(n_inp, n_out).to(device)
-        self.critic_net.load_state_dict(torch.load("models/damaged_models/critic.pth"))
+        self.critic_net.load_state_dict(torch.load("models/good_models/critic.pth"))
 
-        self.actor_last_layer = ActorLastLayer(n_out) # model for getting actual action to be done
-        self.actor_last_layer.load_weights(path="models/damaged_models/actor.pth")
+        self.actor_last_layer = ActorLastLayer(n_out).to(device) # model for getting actual action to be done
+        self.actor_last_layer.load_weights(path="models/good_models/actor.pth")
 
         self.target_actor_net = SuperLesionedActor(n_inp, n_out, hidden_dim, a_limit).to(device)
         self.target_critic_net = Critic(n_inp, n_out).to(device)
@@ -72,7 +73,7 @@ class DDPG:
         R_total = 0
         n_steps = 0
         while not is_done and n_steps < THRESHOLD_STEPS:
-            self.env.render()
+            # self.env.render()
             S_var = Variable(torch.FloatTensor(S)).unsqueeze(0).to(device)
             en_output, model_input = self.actor_net(S_var)
             en_output = en_output.detach()
@@ -83,7 +84,7 @@ class DDPG:
 
             S_prime, R, is_done = self.env.take_action(A)
             # store transition in replay memory (use surrogate action aka en output)
-            self.memory.add_to_memory((S, en_output.data.numpy(), S_prime, R, is_done))
+            self.memory.add_to_memory((S, en_output.data.cpu().numpy(), S_prime, R, is_done))
             # update the next state for next iteration
             S = S_prime
             R_total += R
