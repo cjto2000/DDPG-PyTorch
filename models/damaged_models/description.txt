@@ -1,1 +1,1 @@
-These are models from histories/history3.json
+These are models from histories/history3.json. Trained on damaged actor (i.e. first layer at 16 neurons).
