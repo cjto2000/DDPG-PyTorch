@@ -1,0 +1,1 @@
+CPN-EN trained on 16 hidden dim SuperLesionedActor where EN is just Actor weights
