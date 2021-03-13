@@ -79,24 +79,22 @@ class DDPG:
             en_output, model_input = self.actor_net(S_var)
             en_output = en_output.detach()
             # model_input = model_input.detach()
-            A_pred = self.actor_last_layer(model_input).detach() # get the actual action to be done
+            # A_pred = self.actor_last_layer(model_input).detach() # get the actual action to be done
             noise = self.noise.sample()
             A = (en_output.data.cpu().numpy() + noise)[0][:] # use en_output instead of "actual" output
-            A_pred = (A_pred.data.cpu().numpy() + noise)[0][:]
             S_prime, R, is_done = self.env.take_action(A)
             # store transition in replay memory (use surrogate action aka en output)
-            self.memory.add_to_memory((S, A, A_pred, S_prime, R, is_done))
+            self.memory.add_to_memory((S, A, S_prime, R, is_done))
             # update the next state for next iteration
             S = S_prime
             R_total += R
 
             # Training on samples drawn from replay memory
-            S_batch, A_batch, target_A_batch, S_prime_batch, R_batch, is_done_batch = self.memory.sample(batch_size)
+            S_batch, A_batch, S_prime_batch, R_batch, is_done_batch = self.memory.sample(batch_size)
 
             # cast into variables
             S_batch = Variable(torch.FloatTensor(S_batch)).to(device)
             A_batch = Variable(torch.FloatTensor(A_batch)).to(device)
-            target_A_batch = Variable(torch.FloatTensor(target_A_batch)).to(device)
             S_prime_batch = Variable(torch.FloatTensor(S_prime_batch)).to(device)
             R_batch = Variable(torch.FloatTensor(R_batch)).to(device)
             is_done_batch = Variable(torch.FloatTensor(is_done_batch)).to(device)
@@ -110,10 +108,6 @@ class DDPG:
             # prediction loss for critic
             critic_loss = torch.mean(torch.pow(y - target_y, 2))
 
-            # prediction loss for difference between surrogate and real action
-            squared_difference = torch.pow(A_batch - target_A_batch, 2)
-            loss = torch.mean(torch.sum(squared_difference, dim=1))
-
             # update critic network -> Q(S, A)
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
@@ -121,6 +115,12 @@ class DDPG:
 
             # find actor loss, use en output
             A_en, model_input = self.actor_net(S_batch)
+            # prediction loss for difference between surrogate and real action
+            loss = None
+            if self.include_loss:
+                target_A_batch = self.actor_last_layer(model_input).detach()
+                squared_difference = torch.pow(A_batch - target_A_batch, 2)
+                loss = torch.mean(torch.sum(squared_difference, dim=1))
 
             actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_en)) + (loss if self.include_loss else 0)
 

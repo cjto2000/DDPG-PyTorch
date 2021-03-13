@@ -5,7 +5,7 @@ import pickle
 import os
 
 from environment import Game
-from replay_mem import ReplayMemoryDamaged
+from replay_mem import ReplayMemory
 from ddpg_damaged import *
 from constants import *
 from torch.autograd import Variable
@@ -18,7 +18,7 @@ include_loss = True
 env = Game()
 
 # Create replay memory
-memory = ReplayMemoryDamaged(MAX_BUFF_SIZE, env.state_dim, env.n_actions)
+memory = ReplayMemory(MAX_BUFF_SIZE, env.state_dim, env.n_actions)
 
 
 # DDPG agent
@@ -35,9 +35,8 @@ def initialize_replay_mem():
         A = env.sample_action()
         surrogate_action, model_input = agent.actor_net(S_var)
         surrogate_action = surrogate_action.detach().data.cpu().numpy()
-        target_action = agent.actor_last_layer(model_input).detach().data.cpu().numpy()
         S_prime, R, is_done = env.take_action(A)
-        memory.add_to_memory((S, surrogate_action, target_action, S_prime, R, is_done))
+        memory.add_to_memory((S, surrogate_action, S_prime, R, is_done))
         if is_done:
             S = env.reset()
         else:
