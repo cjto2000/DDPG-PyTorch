@@ -5,22 +5,24 @@ import pickle
 import os
 
 from environment import Game
-from replay_mem import ReplayMemory
-from ddpg_lesioned_en_v1 import *
+from replay_mem import ReplayMemoryDamaged
+from ddpg_damaged import *
 from constants import *
+from torch.autograd import Variable
 
 start_over = True
-hidden_dim = 400
+hidden_dim = 16
+include_loss = True
 
 # gam environment
 env = Game()
 
 # Create replay memory
-memory = ReplayMemory(MAX_BUFF_SIZE, env.state_dim, env.n_actions)
+memory = ReplayMemoryDamaged(MAX_BUFF_SIZE, env.state_dim, env.n_actions)
 
 
 # DDPG agent
-agent = DDPG(env, memory, hidden_dim)
+agent = DDPG(env, memory, hidden_dim, include_loss=include_loss)
 
 def initialize_replay_mem():
     '''
@@ -29,9 +31,13 @@ def initialize_replay_mem():
     print("Initializing replay memory...")
     S = env.reset()
     for _ in range(MAX_BUFF_SIZE):
+        S_var = Variable(torch.FloatTensor(S))
         A = env.sample_action()
+        surrogate_action, model_input = agent.actor_net(S_var)
+        surrogate_action = surrogate_action.detach().data.cpu().numpy()
+        target_action = agent.actor_last_layer(model_input).detach().data.cpu().numpy()
         S_prime, R, is_done = env.take_action(A)
-        memory.add_to_memory((S, A, S_prime, R, is_done))
+        memory.add_to_memory((S, surrogate_action, target_action, S_prime, R, is_done))
         if is_done:
             S = env.reset()
         else:
@@ -45,8 +51,6 @@ def write_history(path, hist):
 
 if os.path.exists("mem_init.pkl") and start_over:
   memory = pickle.load(open("mem_init.pkl", "rb"))
-elif os.path.exists("mem.pkl"):
-    memory = pickle.load(open("mem.pkl", "rb"))
 else:
   initialize_replay_mem()
   pickle.dump(memory, open("mem_init.pkl", "wb"))
