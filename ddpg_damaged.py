@@ -82,12 +82,10 @@ class DDPG:
             A_pred = self.actor_last_layer(model_input).detach() # get the actual action to be done
             noise = self.noise.sample()
             A = (en_output.data.cpu().numpy() + noise)[0][:] # use en_output instead of "actual" output
-
+            A_pred = (A_pred.data.cpu().numpy() + noise)[0][:]
             S_prime, R, is_done = self.env.take_action(A)
             # store transition in replay memory (use surrogate action aka en output)
-            en_output = en_output.data.cpu().numpy()
-            A_pred = A_pred.data.cpu().numpy()
-            self.memory.add_to_memory((S, en_output, A_pred, S_prime, R, is_done))
+            self.memory.add_to_memory((S, A, A_pred, S_prime, R, is_done))
             # update the next state for next iteration
             S = S_prime
             R_total += R
