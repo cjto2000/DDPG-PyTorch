@@ -120,7 +120,7 @@ class DDPG:
             if self.include_loss:
                 target_A_batch = self.actor_last_layer(model_input).detach()
                 squared_difference = torch.pow(A_en - target_A_batch, 2)
-                loss = torch.mean(torch.sum(squared_difference, dim=1))
+                loss = torch.max(torch.sum(squared_difference, dim=1))
 
             actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_en)) + (loss if self.include_loss else 0)
 
