@@ -10,7 +10,7 @@ import numpy as np
 from constants import *
 from model import SuperLesionedActor, Critic, EN, ActorLastLayer
 
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 print(f"DEVICE: {device}")
 
 
@@ -119,7 +119,7 @@ class DDPG:
             loss = None
             if self.include_loss:
                 target_A_batch = self.actor_last_layer(model_input).detach()
-                squared_difference = torch.pow(A_batch - target_A_batch, 2)
+                squared_difference = torch.pow(A_en - target_A_batch, 2)
                 loss = torch.mean(torch.sum(squared_difference, dim=1))
 
             actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_en)) + (loss if self.include_loss else 0)
