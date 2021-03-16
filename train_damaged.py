@@ -33,10 +33,8 @@ def initialize_replay_mem():
     for _ in range(MAX_BUFF_SIZE):
         S_var = Variable(torch.FloatTensor(S)).to(device)
         A = env.sample_action()
-        surrogate_action, model_input = agent.actor_net(S_var)
-        surrogate_action = surrogate_action.detach().data.cpu().numpy()
         S_prime, R, is_done = env.take_action(A)
-        memory.add_to_memory((S, surrogate_action, S_prime, R, is_done))
+        memory.add_to_memory((S, A, S_prime, R, is_done))
         if is_done:
             S = env.reset()
         else:
