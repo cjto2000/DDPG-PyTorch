@@ -16,7 +16,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
-TOTAL_SAMPLES = 5000000
+TOTAL_SAMPLES = 6000000
 HIDDEN_NETWORK_SIZE=300
 SAMPLE_DIM = 24
 BATCH_SIZE = 64
@@ -25,11 +25,11 @@ env = Game()
 
 en_model = EN(env.n_actions, input_dim=HIDDEN_NETWORK_SIZE).to(device)
 optimizer = optim.Adam(en_model.parameters(), lr=.01)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1)
 file = "dim.json"
 
-agent = Actor(env.state_dim, env.n_actions, env.limit, en=True).to(device)
-agent.load_state_dict(torch.load("./models/good_models/actor.pth"))
+agent = DamagedActor(env.state_dim, env.n_actions, env.limit, en=True).to(device)
+agent.load_state_dict(torch.load("./models/damaged_models/actor.pth"))
 
 def generate_samples():
     samples = torch.zeros((TOTAL_SAMPLES, SAMPLE_DIM)).to(device)
@@ -71,6 +71,8 @@ train_losses = []
 valid_losses = []
 def train():
     min_validate_loss = 100
+    reduced = False
+    reduced_again = False
     for i, batch in enumerate(train_loader):
         target_actions, en_input = agent(batch)
         target_actions = target_actions.detach()
@@ -87,16 +89,22 @@ def train():
             valid_losses.append(validate_loss.item())
             if validate_loss < min_validate_loss:
               min_validate_loss = validate_loss
-              print(f"MIN VALIDATE LOSS IS {min_validate_loss}")
-              if min_validate_loss < .2:
+              print(f"BATCH {i}, MIN VALIDATE LOSS IS {min_validate_loss}")
+              if min_validate_loss < .035:
                 torch.save(en_model.state_dict(), "en_model/en.pth") 
+              if not reduced and min_validate_loss < .035:
+                reduced = True
+                scheduler.step()
+              if not reduced_again and min_validate_loss < .005:
+                reduced_again = True
+                scheduler.step()
             #if validate_loss < 1.5:
             #  scheduler.step() 
-        if i % 1000 == 0:
-            print(i, loss)
+        #if i % 1000 == 0:
+        #    print(i, loss)
+    return min_validate_loss
 
 def validate():
-    print("validating")
     with torch.no_grad():
         total_loss = 0
         for i, batch in enumerate(valid_loader):
@@ -110,6 +118,7 @@ def validate():
         return total_loss / len(valid_loader)
 
 def test():
+    en_model.load_state_dict(torch.load("en_model/en.pth"))
     with torch.no_grad():
         total_loss = 0
         for i, batch in enumerate(test_loader):
@@ -119,16 +128,19 @@ def test():
             actions = en_model(en_input)
             squared_difference = torch.pow(target_actions - actions, 2)
             loss = torch.mean(torch.sum(squared_difference, dim=1))
-            if i % 1000 == 0:
-                print(i, loss)
+            #if i % 1000 == 0:
+            #    print(i, loss)
             total_loss += loss
         return total_loss / len(train_loader)
 
-train()
-print(test())
+best_validation_loss = train()
+test_loss = test()
+print(f"BEST VALIDATION LOSS: {best_validation_loss}")
+print(f"TEST LOSS: {test_loss}")
 
+"""
 fig, ax =plt.subplots(1,2)
 sns.lineplot(x=[i for i in range(len(train_losses))], y=train_losses, ax=ax[0])
 sns.lineplot(x=[i for i in range(len(valid_losses))], y=valid_losses, ax=ax[1])
 plt.show()
-
+"""
