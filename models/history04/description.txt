@@ -1,0 +1,1 @@
+Good model trained with 400-16 for the hidden weights
