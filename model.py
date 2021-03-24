@@ -76,13 +76,13 @@ class DamagedActor(nn.Module):
         self.en = en
         self.limit = torch.FloatTensor(limit)
 
-        self.fc1 = nn.Linear(state_dim, 16)
+        self.fc1 = nn.Linear(state_dim, 64)
         nn.init.xavier_uniform_(self.fc1.weight)
 
-        self.fc2 = nn.Linear(16, 300)
+        self.fc2 = nn.Linear(64, 16)
         nn.init.xavier_uniform_(self.fc2.weight)
 
-        self.fc3 = nn.Linear(300, action_dim)
+        self.fc3 = nn.Linear(16, action_dim)
         nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
 
     def forward(self, x):
@@ -93,6 +93,19 @@ class DamagedActor(nn.Module):
         if self.en:
             return x, en_input
         return x
+    
+    def load_weights(self, path):
+      state_dict = torch.load(path)
+      state_dict['fc1.weight'] = state_dict['fc1.weight'][:64, :]
+      state_dict['fc1.bias'] = state_dict['fc1.bias'][:64]
+      state_dict['fc2.weight'] = state_dict['fc2.weight'][:, :64]
+      with torch.no_grad():
+        self.fc1.weight.copy_(state_dict["fc1.weight"])
+        self.fc1.bias.copy_(state_dict["fc1.bias"])
+        self.fc2.weight.copy_(state_dict["fc2.weight"])
+        self.fc2.bias.copy_(state_dict["fc2.bias"])
+        self.fc3.weight.copy_(state_dict["fc3.weight"])
+        self.fc3.bias.copy_(state_dict["fc3.bias"])
 
 class ActorEN(nn.Module):
     # Actor provides the next action to take
