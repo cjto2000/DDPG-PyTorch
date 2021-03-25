@@ -1,0 +1,1 @@
+Damaged Actor with hidden weights of 64-16
