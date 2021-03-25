@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 
 class CPN(nn.Module):
-    def __init__ (self, state_dim, input_dim=100, output_dim=300):
+    def __init__ (self, state_dim, input_dim=400, output_dim=300):
         super(CPN, self).__init__()
         self.fc1 = nn.Linear(state_dim, input_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
@@ -138,13 +138,13 @@ class SuperLesionedActor(nn.Module):
         self.fc1 = nn.Linear(state_dim, hidden_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
 
-        self.fc2 = nn.Linear(hidden_dim, 300)
+        self.fc2 = nn.Linear(hidden_dim, 16)
         nn.init.xavier_uniform_(self.fc2.weight)
 
-        self.fc3 = nn.Linear(300, action_dim)
+        self.fc3 = nn.Linear(16, action_dim)
         nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
 
-        self.cpn = CPN(state_dim, input_dim=400)
+        self.cpn = CPN(state_dim, output_dim=16)
 
     def forward(self, x):
         x_cpn = F.relu(self.cpn(x))
