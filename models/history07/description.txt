@@ -1,0 +1,1 @@
+Damaged Actor trained with hidden weights of 32-16
