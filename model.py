@@ -55,10 +55,10 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(state_dim, 400)
         nn.init.xavier_uniform_(self.fc1.weight)
 
-        self.fc2 = nn.Linear(400, 300)
+        self.fc2 = nn.Linear(400, 16)
         nn.init.xavier_uniform_(self.fc2.weight)
 
-        self.fc3 = nn.Linear(300, action_dim)
+        self.fc3 = nn.Linear(16, action_dim)
         nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
 
     def forward(self, x):
@@ -71,15 +71,16 @@ class Actor(nn.Module):
         return x
 
 class DamagedActor(nn.Module):
-    def __init__(self, state_dim, action_dim, limit, en=False):
+    def __init__(self, state_dim, action_dim, limit, hidden_dim=64, en=False):
         super(DamagedActor, self).__init__()
         self.en = en
         self.limit = torch.FloatTensor(limit)
+        self.hidden_dim = hidden_dim
 
-        self.fc1 = nn.Linear(state_dim, 64)
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
 
-        self.fc2 = nn.Linear(64, 16)
+        self.fc2 = nn.Linear(hidden_dim, 16)
         nn.init.xavier_uniform_(self.fc2.weight)
 
         self.fc3 = nn.Linear(16, action_dim)
@@ -96,9 +97,9 @@ class DamagedActor(nn.Module):
     
     def load_weights(self, path):
       state_dict = torch.load(path)
-      state_dict['fc1.weight'] = state_dict['fc1.weight'][:64, :]
-      state_dict['fc1.bias'] = state_dict['fc1.bias'][:64]
-      state_dict['fc2.weight'] = state_dict['fc2.weight'][:, :64]
+      state_dict['fc1.weight'] = state_dict['fc1.weight'][:self.hidden_dim, :]
+      state_dict['fc1.bias'] = state_dict['fc1.bias'][:self.hidden_dim]
+      state_dict['fc2.weight'] = state_dict['fc2.weight'][:, :self.hidden_dim]
       with torch.no_grad():
         self.fc1.weight.copy_(state_dict["fc1.weight"])
         self.fc1.bias.copy_(state_dict["fc1.bias"])
