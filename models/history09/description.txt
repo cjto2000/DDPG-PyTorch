@@ -1,0 +1,1 @@
+Super Lesioned Actor trained from Damaged actor with hidden weights 16-16 (history08)
