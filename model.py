@@ -147,10 +147,12 @@ class SuperLesionedActor(nn.Module):
 
         self.cpn = CPN(state_dim, output_dim=16)
 
-    def forward(self, x):
-        x_cpn = F.relu(self.cpn(x))
-        actor_input = x_cpn
-        x = F.tanh(self.fc3(x_cpn))
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        x_cpn = F.relu(self.cpn(state))
+        actor_input = x_cpn + x
+        x = F.tanh(self.fc3(x_cpn + x))
         return x, actor_input
 
     def load_weights(self, path):
@@ -178,10 +180,10 @@ class SuperLesionedActor(nn.Module):
             self.fc1.weight[0:num, :] = 0
 
     def freeze_parameters(self):
-        for param in self.fc1.parameters():
-            param.requires_grad = False
-        for param in self.fc2.parameters():
-            param.requires_grad = False
+        #for param in self.fc1.parameters():
+        #    param.requires_grad = False
+        #for param in self.fc2.parameters():
+        #    param.requires_grad = False
         for param in self.fc3.parameters():
             param.requires_grad = False
 
