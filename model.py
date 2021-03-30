@@ -150,9 +150,8 @@ class SuperLesionedActor(nn.Module):
     def forward(self, state):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        x_cpn = F.relu(self.cpn(state))
-        actor_input = x_cpn + x
-        x = F.tanh(self.fc3(x_cpn + x))
+        actor_input = x + self.cpn(state)
+        x = F.tanh(self.fc3(actor_input))
         return x, actor_input
 
     def load_weights(self, path):
