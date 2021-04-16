@@ -53,7 +53,7 @@ class EmulatorNetworkDataset(Dataset):
 split1 = int(TOTAL_SAMPLES * .7)
 split2 = int(TOTAL_SAMPLES * .8)
 train_dataset = EmulatorNetworkDataset(samples[:split1])
-valid_dataset = EmulatorNetworkDataset(samples[split1:split2])
+valid_dataset = EmulatorNetworkDataset(samples[split1:])
 test_dataset = EmulatorNetworkDataset(samples[split2:])
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 valid_loader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -61,6 +61,7 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 train_losses = []
 valid_losses = []
+batch_number = []
 def train():
     min_validate_loss = float("inf")
     for i, batch in enumerate(train_loader):
@@ -75,6 +76,7 @@ def train():
         if i % 500 == 0:
             validate_loss = validate()
             valid_losses.append(validate_loss.item())
+            batch_number.append(i)
             print(f"VALIDATE_LOSS {i}: {validate_loss}")
             # scheduler.step()
             if validate_loss < min_validate_loss:
@@ -110,11 +112,13 @@ def test():
 
 best_validation_loss = train()
 test_loss = test()
-# print(f"BEST VALIDATION LOSS: {best_validation_loss}")
+print(f"BEST VALIDATION LOSS: {best_validation_loss}")
 # en_model.load_state_dict(torch.load("models/en_models/en_damaged.pth", map_location=torch.device("cpu")))
 print(f"TEST LOSS: {test_loss}")
 
-# fig, ax =plt.subplots(1,2)
-# sns.lineplot(x=[i for i in range(len(train_losses))], y=train_losses, ax=ax[0])
-# sns.lineplot(x=[i for i in range(len(valid_losses))], y=valid_losses, ax=ax[1])
-# plt.show()
+fig, ax =plt.subplots(1,2)
+ax1 = sns.lineplot(x=[i for i in range(len(train_losses))], y=train_losses, ax=ax[0])
+ax1.set(xlabel="Batch #", ylabel="Loss", title="Training Set")
+ax2 = sns.lineplot(x=batch_number, y=valid_losses, ax=ax[1])
+ax2.set(xlabel="Batch #", ylabel="Loss", title="Validation Set")
+plt.show()
