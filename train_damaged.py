@@ -12,7 +12,7 @@ from torch.autograd import Variable
 
 start_over = True
 hidden_dim = 16
-include_loss = True
+include_loss = False
 
 # gam environment
 env = Game()

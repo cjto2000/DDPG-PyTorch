@@ -10,7 +10,7 @@ import numpy as np
 from constants import *
 from model import SuperLesionedActor, Critic, EN, ActorLastLayer
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 print(f"DEVICE: {device}")
 
 
@@ -46,15 +46,15 @@ class DDPG:
         # self.en_net.freeze_parameters()
 
         self.actor_net = SuperLesionedActor(n_inp, n_out, hidden_dim, a_limit).to(device)
-        self.actor_net.load_weights(path="models/damaged_models/actor.pth") # load weights
-        self.actor_net.load_en_weights(path="models/en_models/en_damaged.pth") # replace last layer with en network weights
+        self.actor_net.load_weights(path="models/history08/actor.pth") # load weights
+        self.actor_net.load_en_weights(path="models/en_models/en_model_bad.pth") # replace last layer with en network weights
         # self.actor_net.zero_weights() # zero weights of actor to damage it
         self.actor_net.freeze_parameters() # freeze all parameters except for the CPN
         self.critic_net = Critic(n_inp, n_out).to(device)
-        self.critic_net.load_state_dict(torch.load("models/damaged_models/critic.pth"))
+        self.critic_net.load_state_dict(torch.load("models/history08/critic.pth"))
 
-        self.actor_last_layer = ActorLastLayer(n_out).to(device) # model for getting actual action to be done
-        self.actor_last_layer.load_weights(path="models/damaged_models/actor.pth")
+        self.actor_last_layer = ActorLastLayer(n_out, input_dim=16).to(device) # model for getting actual action to be done
+        self.actor_last_layer.load_weights(path="models/history08/actor.pth")
 
         self.target_actor_net = SuperLesionedActor(n_inp, n_out, hidden_dim, a_limit).to(device)
         self.target_critic_net = Critic(n_inp, n_out).to(device)
@@ -120,7 +120,7 @@ class DDPG:
             if self.include_loss:
                 target_A_batch = self.actor_last_layer(model_input).detach()
                 squared_difference = torch.pow(A_en - target_A_batch, 2)
-                loss = torch.max(torch.sum(squared_difference, dim=1))
+                loss = torch.mean(torch.sum(squared_difference, dim=1))
 
             actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_en)) + (loss if self.include_loss else 0)
 
