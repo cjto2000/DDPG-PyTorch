@@ -2,19 +2,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import numpy as np
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+
 
 class CPN(nn.Module):
-    def __init__ (self, state_dim, input_dim=400, output_dim=300):
+    def __init__ (self, state_dim, max_value=10, input_dim=400, output_dim=300):
         super(CPN, self).__init__()
         self.fc1 = nn.Linear(state_dim, input_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
         self.fc2 = nn.Linear(input_dim, output_dim)
         nn.init.xavier_uniform_(self.fc2.weight)
+        self.max_value = max_value
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
+        x = torch.min(x, torch.ones(x.shape) * self.max_value)
         return x
 
 class ActorLastLayer(nn.Module):
@@ -27,7 +30,7 @@ class ActorLastLayer(nn.Module):
         return x
 
     def load_weights(self, path):
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=device)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc3.weight"])
             self.fc1.bias.copy_(state_dict["fc3.bias"])
@@ -145,17 +148,20 @@ class SuperLesionedActor(nn.Module):
         self.fc3 = nn.Linear(16, action_dim)
         nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
 
-        self.cpn = CPN(state_dim, output_dim=16)
+        self.cpn = CPN(state_dim, output_dim=8)
 
     def forward(self, state):
+        batch_size, _ = state.shape
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        actor_input = x + self.cpn(state)
+        cpn_output = self.cpn(state)
+        cpn_output = torch.cat([cpn_output, torch.zeros(batch_size, 8)], dim=1)
+        actor_input = x + cpn_output
         x = F.tanh(self.fc3(actor_input))
         return x, actor_input
 
     def load_weights(self, path):
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=device)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc1.weight"])
             self.fc1.bias.copy_(state_dict["fc1.bias"])
