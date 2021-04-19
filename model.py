@@ -16,8 +16,7 @@ class CPN(nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = torch.min(x, torch.ones(x.shape) * self.max_value)
+        x = torch.mul(F.tanh(self.fc2(x)), self.max_value)
         return x
 
 class ActorLastLayer(nn.Module):
@@ -30,7 +29,7 @@ class ActorLastLayer(nn.Module):
         return x
 
     def load_weights(self, path):
-        state_dict = torch.load(path, map_location=device)
+        state_dict = torch.load(path)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc3.weight"])
             self.fc1.bias.copy_(state_dict["fc3.bias"])
@@ -155,13 +154,13 @@ class SuperLesionedActor(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         cpn_output = self.cpn(state)
-        cpn_output = torch.cat([cpn_output, torch.zeros(batch_size, 8)], dim=1)
+        cpn_output = torch.cat([cpn_output, torch.zeros(batch_size, 8).to(device)], dim=1)
         actor_input = x + cpn_output
         x = F.tanh(self.fc3(actor_input))
         return x, actor_input
 
     def load_weights(self, path):
-        state_dict = torch.load(path, map_location=device)
+        state_dict = torch.load(path)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc1.weight"])
             self.fc1.bias.copy_(state_dict["fc1.bias"])
