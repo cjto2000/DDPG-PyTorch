@@ -29,7 +29,7 @@ class ActorLastLayer(nn.Module):
         return x
 
     def load_weights(self, path):
-        state_dict = torch.load(path)
+        state_dict = torch.load(path, map_location=device)
         with torch.no_grad():
             self.fc1.weight.copy_(state_dict["fc3.weight"])
             self.fc1.bias.copy_(state_dict["fc3.bias"])
