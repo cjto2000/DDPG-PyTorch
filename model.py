@@ -152,10 +152,10 @@ class SuperLesionedActor(nn.Module):
     def forward(self, state):
         batch_size, _ = state.shape
         x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = self.fc2(x)
         cpn_output = self.cpn(state)
         cpn_output = torch.cat([cpn_output, torch.zeros(batch_size, 8).to(device)], dim=1)
-        actor_input = x + cpn_output
+        actor_input = F.relu(x + cpn_output)
         x = F.tanh(self.fc3(actor_input))
         return x, actor_input
 
