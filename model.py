@@ -6,7 +6,7 @@ device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
 
 class CPN(nn.Module):
-    def __init__ (self, state_dim, max_value=10, input_dim=400, output_dim=300):
+    def __init__ (self, state_dim, max_value=1, input_dim=400, output_dim=300):
         super(CPN, self).__init__()
         self.fc1 = nn.Linear(state_dim, input_dim)
         nn.init.xavier_uniform_(self.fc1.weight)
