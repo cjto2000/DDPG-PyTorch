@@ -4,6 +4,74 @@ import torch.nn.functional as F
 
 device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
+class CPNv0(nn.Module):
+    def __init__ (self, state_dim, input_dim=400, output_dim=300):
+        super(CPNv0, self).__init__()
+        self.fc1 = nn.Linear(state_dim, input_dim)
+        nn.init.xavier_uniform_(self.fc1.weight)
+        self.fc2 = nn.Linear(input_dim, output_dim)
+        nn.init.xavier_uniform_(self.fc2.weight)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return x
+
+class SuperLesionedActorv0(nn.Module):
+    # Actor provides the next action to take
+    def __init__(self, state_dim, action_dim, hidden_dim, limit):
+        super(SuperLesionedActorv0, self).__init__()
+        self.limit = torch.FloatTensor(limit)
+
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
+        nn.init.xavier_uniform_(self.fc1.weight)
+
+        self.fc2 = nn.Linear(hidden_dim, 16)
+        nn.init.xavier_uniform_(self.fc2.weight)
+
+        self.fc3 = nn.Linear(16, action_dim)
+        nn.init.uniform_(self.fc3.weight, -0.003, 0.003)
+
+        self.cpn = CPNv0(state_dim, output_dim=16)
+
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        actor_input = x + self.cpn(state)
+        x = F.tanh(self.fc3(actor_input))
+        return x, actor_input
+
+    def load_weights(self, path):
+        state_dict = torch.load(path)
+        with torch.no_grad():
+            self.fc1.weight.copy_(state_dict["fc1.weight"])
+            self.fc1.bias.copy_(state_dict["fc1.bias"])
+            self.fc2.weight.copy_(state_dict["fc2.weight"])
+            self.fc2.bias.copy_(state_dict["fc2.bias"])
+            self.fc3.weight.copy_(state_dict["fc3.weight"])
+            self.fc3.bias.copy_(state_dict["fc3.bias"])
+
+    def load_en_weights(self, path):
+        state_dict = torch.load(path)
+        with torch.no_grad():
+            self.fc3.weight.copy_(state_dict["fc1.weight"])
+            self.fc3.bias.copy_(state_dict["fc1.bias"])
+
+    def zero_weights(self, percent=.50):
+        # zero first layer
+        with torch.no_grad():
+            shape = self.fc1.weight.shape
+            print(shape[0], shape[1])
+            num = int(shape[0] * percent)
+            self.fc1.weight[0:num, :] = 0
+
+    def freeze_parameters(self):
+        #for param in self.fc1.parameters():
+        #    param.requires_grad = False
+        #for param in self.fc2.parameters():
+        #    param.requires_grad = False
+        for param in self.fc3.parameters():
+            param.requires_grad = False
 
 class CPN(nn.Module):
     def __init__ (self, state_dim, max_value=1, input_dim=400, output_dim=300):
