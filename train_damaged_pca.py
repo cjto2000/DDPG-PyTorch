@@ -84,7 +84,7 @@ if __name__ == "__main__":
             history["actor_loss"].append(round(l2.item(), 2))
             history["rewards"].append(round(reward / LOG_STEPS, 2))
             history["total_timesteps"] += time_steps
-            history["pca_loss"].append(round(loss, 2))
+            history["pca_loss"].append(round(loss.item(), 2))
             time_steps = 0
             write_history("history.json", history)
             print("Episode %5d -- Running Rewards : %.5f -- Reward: %.5f -- Losses: %.5f(a) %.5f(c) %.5f(pca) -- Best Reward: %.5f -- Time steps: %d" %(i, running_R, reward / LOG_STEPS, l2, l1, loss, best_R, history["total_timesteps"]))
