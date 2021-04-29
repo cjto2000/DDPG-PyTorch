@@ -119,9 +119,6 @@ class DDPG:
 
             # find actor loss, use en output
             A_en, model_input = self.actor_net(S_batch)
-            print(S_batch)
-            print(model_input)
-            exit()
             # prediction loss for difference between surrogate and real action
             loss = 0
             if self.include_loss: # include pca loss
