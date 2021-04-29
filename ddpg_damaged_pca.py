@@ -71,7 +71,8 @@ class DDPG:
 
         self.pca_time_series = np.load("tmp/pc_time_series.npy")
         self.saved_time_series = self.avg_time_series()
-        self.reduced = np.load("tmp/reduced.npy")
+        self.reduced = Variable(torch.FloatTensor(np.load("tmp/reduced.npy"))).to(device)
+        self.pca_weight = 1 / 50
 
     def train_one_episode(self, batch_size=32):
         S = self.env.reset()
@@ -123,14 +124,14 @@ class DDPG:
             loss = 0
             if self.include_loss: # include pca loss
                 indices = time_step_batch.flatten()
-                matrix = model_input.detach().numpy() @ self.get_pca_matrix(indices)
-                mask = np.identity(BATCH_SIZE)
-                ones = np.ones((BATCH_SIZE, 1))
-                matrix = np.multiply(matrix, mask)
+                matrix = model_input @ self.get_pca_matrix(indices)
+                mask = torch.eye(BATCH_SIZE)
+                ones = torch.ones((BATCH_SIZE, 1))
+                matrix = torch.multiply(matrix, mask)
                 pc_vector = matrix @ ones
                 target_vector = self.reduced[indices]
-                loss = np.sum((target_vector - pc_vector) ** 2)
-                loss /= 50
+                loss = torch.sum((target_vector - pc_vector) ** 2)
+                loss *= self.pca_weight
 
             actor_loss = -1 * torch.mean(self.critic_net(S_batch, A_en)) + (loss if self.include_loss else 0)
             # update actor network
@@ -154,10 +155,10 @@ class DDPG:
           target.data.copy_(target.data * (1.0 - TAU) + src.data * TAU)
 
     def get_pca_matrix(self, time_steps):
-        return self.pca_time_series[time_steps].transpose((1, 0))
+        pca_time_series = self.pca_time_series[time_steps].transpose((1, 0))
+        return Variable(torch.FloatTensor(pca_time_series)).to(device)
 
     def avg_time_series(self):
         arr = np.load("tmp/saved_time_series.npy")
         arr = np.average(arr, axis=0)
-        print(arr.shape)
         return arr
