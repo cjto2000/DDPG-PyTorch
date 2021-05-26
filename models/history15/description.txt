@@ -1,0 +1,1 @@
+Regular agent (400-16) trained with scheduler decreasing by 10x when running reward is > 100 and reward is > 250
