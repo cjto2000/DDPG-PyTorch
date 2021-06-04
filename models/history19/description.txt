@@ -1,0 +1,1 @@
+Regular Agent trained with weights 128-16
